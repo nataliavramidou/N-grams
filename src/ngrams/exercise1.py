@@ -59,34 +59,35 @@ for sent in sentences_tokenized:
     bigram_counter.update([gram for gram in ngrams(sent,2,pad_left=True, pad_right=True,left_pad_symbol='<s>', right_pad_symbol='</e>')])
     trigram_counter.update([gram for gram in ngrams(sent,3,pad_left=True, pad_right=True,left_pad_symbol='<s>', right_pad_symbol='</e>')])
 
-print(bigram_counter.most_common(10))
 
 alpha = 0.1;
 
-#n gram propability for a sequence //ÃŽâ€¢ÃŽÂ´Ã�â€° ÃŽÂ¸ÃŽÂµÃ�â€°Ã�ï¿½Ã�Å½ ÃŽÂ¿Ã�â€žÃŽÂ¹ sequence ÃŽÂµÃŽÂ¯ÃŽÂ½ÃŽÂ±ÃŽÂ¹ ÃŽÂ¼ÃŽÂ¹ÃŽÂ± Ã�â‚¬Ã�ï¿½ÃŽÂ¿Ã�â€žÃŽÂ±Ã�Æ’ÃŽÂ·
+#find bigram probability
+def findBigramPropability(start, end):
+    bigram_prop = (bigram_counter[(start, end)] + alpha) / (unigram_counter[(start,)] + alpha*vocab_size)
+    bigram_prop = math.log2(bigram_prop);
+    return bigram_prop
+
+#find trigram probability
+def findTrigramPropability(start1, start2, end):
+    trigram_prop = (trigram_counter[(start1, start2, end)] + alpha) / (bigram_counter[(start1, start2)] +alpha*vocab_size);
+    trigram_prop = math.log2(trigram_prop);
+    return trigram_prop
+
+#n gram propability for a sequence 
 def findSequenceBigramPropability(sequence):
     seq_bigram_propability = 0;
     for i in range(0,len(sequence)-1):
-        bigram_prob = (bigram_counter[(sequence[i], sequence[i+1])] + alpha) / (unigram_counter[(sequence[i],)] + alpha*vocab_size)
-        seq_bigram_propability += math.log2(bigram_prob);
+        bigram_prop = findBigramPropability(sequence[i], sequence[i+1])
+        seq_bigram_propability += bigram_prop;
     return seq_bigram_propability
 
 def findSequenceTrigramPropability(sequence):
     seq_trigram_propability = 0;
     for i in range(0,len(sequence)-2):
-        trigram_prob = (trigram_counter[(sequence[i], sequence[i+1], sequence[i+2])] + alpha) / (bigram_counter[(sequence[i],sequence[i+1])] +alpha*vocab_size);
-        seq_trigram_propability += math.log2(trigram_prob);
+        trigram_prop = findTrigramPropability(sequence[i], sequence[i+1], sequence[i+2])
+        seq_trigram_propability += trigram_prop;
     return seq_trigram_propability
-
-'''
-#bigram/trigram propability for the three first sentences in the training set
-for i in range(3):
-    print(sentences_tokenized[i])
-    prob2 = findSequenceBigramPropability(sentences_tokenized[i])
-    print("bigram_prob2: {0:.8f} ".format(prob2))
-    prob3 = findSequenceTrigramPropability(sentences_tokenized[i])
-    print("trigram_prob: {0:.8f} ".format(prob3))
-'''
 
 ''' upoerotima 2 '''
 test_text = read_file("../test_data.txt")
@@ -100,8 +101,8 @@ for sent in test_sentences:
     sent_tok = tweet_wt.tokenize(sent);
     test_sentences_tokenized.append(sent_tok);
 
+#findLanguageEntropy bigram
 count_bigrams =0;
-#def findLanguageEntropy():
 language_propabity = 0;
 for sent in test_sentences_tokenized:
     for i in range(len(sent)):
@@ -110,12 +111,28 @@ for sent in test_sentences_tokenized:
     language_propabity += findSequenceBigramPropability(sent)
     count_bigrams += len(sent)-1;
 
-language_entropy = (-1)*language_propabity/count_bigrams
-language_perplexity = math.pow(2,language_entropy)
+bi_language_entropy = (-1)*language_propabity/count_bigrams
+bi_language_perplexity = math.pow(2,bi_language_entropy)
+   
+print("bigram language entropy: {0:.8f} ".format(bi_language_entropy))    
+print("bigram language perpexity: {0:.8f} ".format(bi_language_perplexity)) 
 
-print("language bigram_prob: {0:.8f} ".format(language_propabity))    
-print("language entropy: {0:.8f} ".format(language_entropy))    
-print("language perpexity: {0:.8f} ".format(language_perplexity)) 
+#findLanguageEntropy trigram
+count_trigrams =0;
+language_propabity = 0;
+for sent in test_sentences_tokenized:
+    for i in range(len(sent)):
+        if(sent[i] not in vocabulary):
+            sent[i] = 'UNK'
+    language_propabity += findSequenceTrigramPropability(sent)
+    count_trigrams += len(sent)-2;
+
+tri_language_entropy = (-1)*language_propabity/count_bigrams
+tri_language_perplexity = math.pow(2,tri_language_entropy)
+
+ 
+print("trigram language entropy: {0:.8f} ".format(tri_language_entropy))    
+print("trigram language perpexity: {0:.8f} ".format(tri_language_perplexity)) 
 
 '''beam search'''
 def LD(s, t):
@@ -150,13 +167,7 @@ def findWordEditDistances(word):
 
 edtdistance = findWordEditDistances(word);
 
-
 #πρεπει να βρω και τα λ1,λ2
-
-def findBigramPropability(start, end):
-    bigram_prob = (bigram_counter[(start, end)] + alpha) / (unigram_counter[(start,)] + alpha*vocab_size)
-    seq_bigram_propability = math.log2(bigram_prob);
-    return seq_bigram_propability
 
 '''
 most_propable = dict()
