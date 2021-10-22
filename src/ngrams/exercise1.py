@@ -63,7 +63,7 @@ print(bigram_counter.most_common(10))
 
 alpha = 0.1;
 
-#n gram propability for a sequence //Î•Î´Ï‰ Î¸ÎµÏ‰Ï�ÏŽ Î¿Ï„Î¹ sequence ÎµÎ¯Î½Î±Î¹ Î¼Î¹Î± Ï€Ï�Î¿Ï„Î±ÏƒÎ·
+#n gram propability for a sequence //ÃŽâ€¢ÃŽÂ´Ã�â€° ÃŽÂ¸ÃŽÂµÃ�â€°Ã�ï¿½Ã�Å½ ÃŽÂ¿Ã�â€žÃŽÂ¹ sequence ÃŽÂµÃŽÂ¯ÃŽÂ½ÃŽÂ±ÃŽÂ¹ ÃŽÂ¼ÃŽÂ¹ÃŽÂ± Ã�â‚¬Ã�ï¿½ÃŽÂ¿Ã�â€žÃŽÂ±Ã�Æ’ÃŽÂ·
 def findSequenceBigramPropability(sequence):
     seq_bigram_propability = 0;
     for i in range(0,len(sequence)-1):
@@ -78,6 +78,7 @@ def findSequenceTrigramPropability(sequence):
         seq_trigram_propability += math.log2(trigram_prob);
     return seq_trigram_propability
 
+'''
 #bigram/trigram propability for the three first sentences in the training set
 for i in range(3):
     print(sentences_tokenized[i])
@@ -85,6 +86,7 @@ for i in range(3):
     print("bigram_prob2: {0:.8f} ".format(prob2))
     prob3 = findSequenceTrigramPropability(sentences_tokenized[i])
     print("trigram_prob: {0:.8f} ".format(prob3))
+'''
 
 ''' upoerotima 2 '''
 test_text = read_file("../test_data.txt")
@@ -112,8 +114,103 @@ language_entropy = (-1)*language_propabity/count_bigrams
 language_perplexity = math.pow(2,language_entropy)
 
 print("language bigram_prob: {0:.8f} ".format(language_propabity))    
-print(count_bigrams) 
 print("language entropy: {0:.8f} ".format(language_entropy))    
 print("language perpexity: {0:.8f} ".format(language_perplexity)) 
 
-  
+'''beam search'''
+def LD(s, t):
+    if s == "":
+        return len(t)
+    if t == "":
+        return len(s)
+    if s[-1] == t[-1]:
+        cost = 0
+    else:
+        cost = 1
+       
+    res = min([LD(s[:-1], t)+1,
+               LD(s, t[:-1])+1, 
+               LD(s[:-1], t[:-1]) + cost])
+
+    return res
+
+sequence = input('Give a sequence')
+sequence = '<s> '+sequence;
+sequArr = tweet_wt.tokenize(sequence)
+word = sequArr[1];
+
+edtdistance = dict()
+def findWordEditDistances(word):
+    for token in vocabulary:
+        distance = LD(word, token)
+        if(distance<3):
+            edtdistance[token] = distance
+
+    return edtdistance 
+
+edtdistance = findWordEditDistances(word);
+
+
+#πρεπει να βρω και τα λ1,λ2
+
+def findBigramPropability(start, end):
+    bigram_prob = (bigram_counter[(start, end)] + alpha) / (unigram_counter[(start,)] + alpha*vocab_size)
+    seq_bigram_propability = math.log2(bigram_prob);
+    return seq_bigram_propability
+
+'''
+most_propable = dict()
+for key in edtdistance.keys():
+    pEditDistance = 1 / (edtdistance[key]+1)
+    LK = -findBigramPropability(sequArr[0], key) -math.log2(pEditDistance)
+    #print(key, edtdistance[key])
+    #print(LK)
+    most_propable[key] = LK
+
+sort_words = sorted(most_propable.items(), key=lambda x: x[1], reverse=False)
+word1 = sort_words[0][0]
+word2 = sort_words[1][0]
+print(word1)
+print(word2)
+'''
+
+'''έστω ότι κρατάμε τις δύο πρώτες λέξεις.'''
+word1 = sequArr[0];
+word2 = sequArr[0]
+for k in range(1,len(sequArr)):
+    edtdistance = findWordEditDistances(sequArr[k]);
+    most_propable = dict()
+    #most_propable2 = dict()
+    for key in edtdistance.keys():
+        pEditDistance = 1 / (edtdistance[key]+1)
+        LK1 = -(0.6)*findBigramPropability(word1, key) -(0.4)*math.log2(pEditDistance)
+        #LK2 = -findBigramPropability(word2, key) -math.log2(pEditDistance)
+        #print(key, edtdistance[key])
+        #print(LK)
+        most_propable[key] = LK1
+        #most_propable2[key] = LK2
+    sort_words = sorted(most_propable.items(), key=lambda x: x[1], reverse=False)
+    #sort_words2 = sorted(most_propable2.items(), key=lambda x: x[1], reverse=False)
+    word1 = sort_words[0][0]
+    word2 = sort_words[1][0]
+    print(word1)
+    #print(word2)
+
+
+
+
+
+
+
+   
+
+
+
+    
+
+
+
+
+
+
+
